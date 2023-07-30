@@ -1,0 +1,196 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>METANIT.COM</title>
+</head>
+<body>
+    <h2>List of Users</h2>
+    <div>
+        <input type="hidden" id="userId" />
+        <p>
+            Name<br />
+            <input id="userName" />
+        </p>
+        <p>
+            Age<br />
+            <input id="userAge" />
+        </p>
+        <p>
+            <button id="saveBtn">Save</button>
+            <button id="resetBtn">Reset</button>
+        </p>
+        <table>
+            <thead><tr><th>Name</th><th>Age</th></tr></thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        async function getUsers()
+        {
+            const response = await fetch("/api/users",
+            {
+                    method: "GET",
+                    headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true)
+            {
+                const users = await response.json();
+                const rows = document.querySelector("tbody");
+                users.forEach(user => rows.append(row(user)));
+
+            }
+        }
+        async function getUser(id)
+        {
+            const response = await fetch(`/api/users/${id}`,
+            {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.getElementById("userId").value = user.id;
+                document.getElementById("userName").value = user.name;
+                document.getElementById("userAge").value = user.age
+            }
+            else
+            {
+                const error = response.json();
+                console.log(error.message);
+            }
+        }
+
+        async function deleteUser(id)
+        {
+            const response = await fetch(`/api/users/${id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                });
+            if (response.ok === true) {
+                const user = await response.json();
+                document.querySelector(`tr[data-rowid = '${user.id}']`).remove();
+            }
+            else
+            {
+                const error = await response.json();
+                console.log(error.message);
+            }
+
+        }
+        async function editUser(userId, userName, userAge)
+        {
+            const response = await fetch("/api/users",
+                {
+                    method: "PUT",
+                    headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        id: userId,
+                        name: userName,
+                        age: parseInt(userAge, 10)
+                    })
+
+                });
+            if (response.ok == true)
+            {
+                const user = await response.json();
+                document.querySelector(`tr[data-rowid ='${user.id}']`).replaceWith(row(user));
+            }
+            else
+            {
+                const error = response.json();
+                console.log(error.message);
+            }
+        }
+
+        async function createUser(userName, userAge)
+        {
+            const response = await fetch("/api/users",
+                {
+                    method: "POST",
+                    headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                    body: JSON.stringify(
+                        {
+                            name: userName,
+                            age: parseInt(userAge, 10)
+                        }
+                    )
+                });
+            if (response.ok === true) {
+                const user = await response.json();
+                const rows = document.querySelector("tbody");
+                rows.append(row(user));
+            }
+            else
+            {
+                const error = response.json();
+                console.log(error.message);
+            }
+        }
+
+        function row(user) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", user.id);
+
+            const nameTd = document.createElement("td");
+            nameTd.append(user.name);
+            tr.append(nameTd);
+
+            const ageTd = document.createElement("td");
+            ageTd.append(user.age);
+            tr.append(ageTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("button");
+            editLink.append("Change");
+            editLink.addEventListener("click", async () => await getUser(user.id));
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("button");
+            removeLink.append("Delete");
+            removeLink.addEventListener("click", async () => await deleteUser(user.id));
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+
+
+        document.getElementById("saveBtn").addEventListener("click",async () => {
+            const id = document.getElementById("userId").value;
+            const name = document.getElementById("userName").value;
+            const age = document.getElementById("userAge").value;
+
+            if (id === "") {
+                await createUser(name, age);
+            }
+            else
+            {
+                await editUser(id, name, age);
+            }
+            reset();
+        });
+
+        function reset()
+        {
+            document.getElementById("userId").value =
+            document.getElementById("userName").value =
+            document.getElementById("userAge").value = "";
+        }
+
+        document.getElementById("resetBtn").addEventListener("click", () => { reset()});
+
+        
+
+        getUsers();
+
+    </script>
+</body>
+</html>
